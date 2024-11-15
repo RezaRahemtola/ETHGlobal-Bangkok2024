@@ -8,19 +8,29 @@ export const skills: SkillGroup[] = [
 		description: "Create accounts on different blockchains and interact with them.",
 		skills: [
 			{
-				skill: "/create-account [blockchain] [password]",
+				skill: "/create-account [blockchain] [name] [password]",
 				handler: handleAccounts,
 				description: "Create a new account/wallet on the specified blockchain using a given password.",
-				examples: ["/create-account ethereum"],
+				examples: ["/create-account ethereum cold_wallet supersecretpassword"],
 				params: {
 					blockchain: {
 						type: "string",
 						values: ["ethereum"],
 					},
+					name: {
+						type: "string",
+					},
 					password: {
 						type: "string",
 					},
 				},
+			},
+			{
+				skill: "/list-accounts",
+				handler: handleAccounts,
+				description: "List all the blockchain accounts previously created.",
+				examples: ["/list-accounts"],
+				params: {},
 			},
 			// {
 			// 	skill: "/register [domain]",

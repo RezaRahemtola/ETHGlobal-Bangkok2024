@@ -45,8 +45,11 @@ export async function agent_prompt(senderAddress: string) {
 	let fineTuning = `
 ## Example responses:
 
-1. If the user wants to create an account on a blockchain, use the command "/create-account [blockchain] [password]"
+1. If the user wants to create an account on a blockchain, use the command "/create-account [blockchain] [name] [password]"
   Sure, let me create an account for you!
+  
+2. If the user wants to list the blockchain accounts he has, use the command "/list-accounts"
+	Fetching your accounts...
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

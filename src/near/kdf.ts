@@ -46,7 +46,6 @@ export async function generateAddress({
 	chain: string;
 }) {
 	const childPublicKey = await deriveChildPublicKey(najPublicKeyStrToUncompressedHexPoint(publicKey), accountId, path);
-	if (!chain) chain = "ethereum";
 	let address: string;
 	switch (chain) {
 		// TODO: add support from other chains

@@ -9,6 +9,7 @@ const envSchema = z.object({
 	NEAR_PRIVATE_KEY: z.string(),
 	MPC_CONTRACT_ID: z.string(),
 	MPC_PUBLIC_KEY: z.string(),
+	ALEPH_API_URL: z.string().url().default("https://api.twentysix.testnet.network"),
 });
 
 const env = envSchema.parse(process.env);

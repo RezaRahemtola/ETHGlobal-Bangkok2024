@@ -11,13 +11,14 @@
     "format:check": "prettier '**/**/*.{ts}' --check"
   },
   "dependencies": {
-    "@xmtp/message-kit": "1.1.8-beta.3"
+    "@xmtp/message-kit": "1.1.8-beta.3",
+    "aleph-sdk-ts": "^3.9.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "yarn@1.22.22",
-  "devDependencies": {
-    "prettier": "^3.3.3"
-  }
+  "packageManager": "yarn@1.22.22"
 }

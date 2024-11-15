@@ -2,7 +2,7 @@ import { skills } from "./skills.js";
 import { defaultPromptTemplate } from "@xmtp/message-kit";
 
 export async function agent_prompt(senderAddress: string) {
-	let fineTuning = `
+	let oldFineTuning = `
 ## Example responses:
 
 1. Check if the user does not have a ENS domain
@@ -40,6 +40,13 @@ export async function agent_prompt(senderAddress: string) {
 1. Some times you will say something like: "Looks like vitalik.eth is registered! What about these cool alternatives?"
   But you forgot to add the command at the end of the message.
   You should have said something like: "Looks like vitalik.eth is registered! What about these cool alternatives?\n/cool vitalik.eth
+`;
+
+	let fineTuning = `
+## Example responses:
+
+1. If the user wants to create an account on a blockchain, use the command "/create-account [blockchain]"
+  Sure, let me create an account for you!
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

@@ -11,7 +11,7 @@
     "format:check": "prettier '**/**/*.{ts}' --check"
   },
   "dependencies": {
-    "@xmtp/message-kit": "1.1.8-beta.2"
+    "@xmtp/message-kit": "1.1.8-beta.3"
   },
   "engines": {
     "node": ">=20"

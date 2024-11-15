@@ -661,10 +661,10 @@
     "@xmtp/xmtp-js" "^13.0.3"
     pino "^8.18.0"
 
-"@xmtp/message-kit@latest":
-  version "1.1.8-beta.2"
-  resolved "https://registry.yarnpkg.com/@xmtp/message-kit/-/message-kit-1.1.8-beta.2.tgz#3eaccb454b5974440d9b278a7e776925e78aa6da"
-  integrity sha512-lmazmpHiGtGHmO1WE9ngwpkRFmK5cpG7dA+EbyB749agrDoQ/uSqycixWAHa1J4d+AjXXDdZyI5OjCY/ONRzfw==
+"@xmtp/message-kit@1.1.8-beta.3":
+  version "1.1.8-beta.3"
+  resolved "https://registry.yarnpkg.com/@xmtp/message-kit/-/message-kit-1.1.8-beta.3.tgz#d4370b40ec2b0f5c3d99904494393d6605a26bbd"
+  integrity sha512-B92widiYO1o11k2nYtZfwDNVPJ1qTBOgYGG+9L7EwrPmHsCX2Pdr49XR/FONoHAEAVmDxPbFB6xTE0YYqTvK0A==
   dependencies:
     "@types/node" "^20.14.2"
     "@vitest/coverage-v8" "^2.1.4"

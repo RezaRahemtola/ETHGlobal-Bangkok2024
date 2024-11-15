@@ -18,4 +18,4 @@ run(async (context: HandlerContext) => {
 		console.error("Error during OpenAI call:", error);
 		await context.send("An error occurred while processing your request.");
 	}
-});
+}).then();

@@ -3,6 +3,7 @@
     "src/**/*"
   ],
   "compilerOptions": {
+    "allowJs": false,
     "outDir": "./dist",
     "esModuleInterop": true,
     "declaration": true,

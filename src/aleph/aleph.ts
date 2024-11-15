@@ -5,7 +5,7 @@ import { AuthenticatedAlephHttpClient } from "@aleph-sdk/client";
 
 const userAccountSchema = z.object({
 	name: z.string(),
-	chain: z.union([z.literal("ethereum"), z.literal("bitcoin")]),
+	chain: z.union([z.literal("ethereum"), z.literal("near")]),
 	address: z.string(),
 });
 export type UserAccount = z.infer<typeof userAccountSchema>;

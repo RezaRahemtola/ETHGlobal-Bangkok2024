@@ -1,7 +1,8 @@
 import js_sha3 from "js-sha3";
-import { base_decode } from "near-api-js/lib/utils/serialize.js";
+import { base_decode, base_encode } from "near-api-js/lib/utils/serialize.js";
 import keccak from "keccak";
 import elliptic from "elliptic";
+import { generateSeedPhrase } from "near-seed-phrase";
 
 const { ec: EC } = elliptic;
 const { sha3_256 } = js_sha3;
@@ -46,17 +47,25 @@ export async function generateAddress({
 	chain: string;
 }) {
 	const childPublicKey = await deriveChildPublicKey(najPublicKeyStrToUncompressedHexPoint(publicKey), accountId, path);
-	let address: string;
+	let address, nearSecpPublicKey, nearImplicitSecretKey;
 	switch (chain) {
-		// TODO: add support from other chains
 		case "ethereum":
 			address = uncompressedHexPointToEvmAddress(childPublicKey);
+			break;
+		case "near":
+			const { implicitAccountId, implicitSecpPublicKey, implicitAccountSecretKey } =
+				await uncompressedHexPointToNearImplicit(childPublicKey);
+			address = implicitAccountId;
+			nearSecpPublicKey = implicitSecpPublicKey;
+			nearImplicitSecretKey = implicitAccountSecretKey;
 			break;
 	}
 	return {
 		// @ts-ignore
 		address,
 		publicKey: childPublicKey,
+		nearSecpPublicKey,
+		nearImplicitSecretKey,
 	};
 }
 
@@ -67,4 +76,31 @@ function uncompressedHexPointToEvmAddress(uncompressedHexPoint: string): string 
 
 	// Ethereum address is last 20 bytes of hash (40 characters), prefixed with 0x
 	return "0x" + address.substring(address.length - 40);
+}
+
+async function uncompressedHexPointToNearImplicit(uncompressedHexPoint: string) {
+	// console.log('uncompressedHexPoint', uncompressedHexPoint);
+
+	const implicitSecpPublicKey = "secp256k1:" + base_encode(Buffer.from(uncompressedHexPoint.substring(2), "hex"));
+	// get an implicit accountId from an ed25519 keyPair using the sha256 of the secp256k1 point as entropy
+	const sha256HashOutput = await crypto.subtle.digest("SHA-256", Buffer.from(uncompressedHexPoint, "hex"));
+	const { publicKey, secretKey: implicitAccountSecretKey } = generateSeedPhrase(Buffer.from(sha256HashOutput));
+
+	// DEBUG
+	// console.log(secretKey);
+
+	const implicitAccountId = Buffer.from(base_decode(publicKey.split(":")[1])).toString("hex");
+
+	// DEBUG adding key
+	// await addKey({
+	//     accountId: implicitAccountId,
+	//     secretKey,
+	//     publicKey: implicitSecpPublicKey,
+	// });
+
+	return {
+		implicitAccountId,
+		implicitSecpPublicKey,
+		implicitAccountSecretKey,
+	};
 }

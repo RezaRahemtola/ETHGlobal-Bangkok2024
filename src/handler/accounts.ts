@@ -1,5 +1,5 @@
 import { HandlerContext, SkillResponse } from "@xmtp/message-kit";
-import { genAddress } from "../near/near.js";
+import { genAddress, genNearAccount } from "../near/near.js";
 import { getUserAccounts, updateUserAccounts } from "../aleph/aleph.js";
 
 const BLOCKSCOUT_URL_ETH_ADDRESS = "https://eth.blockscout.com/address/";
@@ -7,13 +7,17 @@ const BLOCKSCOUT_URL_ETH_ADDRESS = "https://eth.blockscout.com/address/";
 export async function handleAccounts(context: HandlerContext): Promise<SkillResponse> {
 	const {
 		message: {
+			sender,
 			content: { skill },
 		},
 	} = context;
 
+	// Generating Near account if needed
+	const accountId = await genNearAccount(sender.address.toLowerCase());
+
 	switch (skill) {
 		case "create-account":
-			return createAccount(context);
+			return createAccount(context, accountId);
 		case "list-accounts":
 			return listAccounts(context);
 		default:
@@ -21,7 +25,7 @@ export async function handleAccounts(context: HandlerContext): Promise<SkillResp
 	}
 }
 
-async function createAccount(context: HandlerContext): Promise<SkillResponse> {
+async function createAccount(context: HandlerContext, accountId: string): Promise<SkillResponse> {
 	const {
 		message: {
 			sender,
@@ -37,7 +41,7 @@ async function createAccount(context: HandlerContext): Promise<SkillResponse> {
 		return { code: 400, message: "You already have an account with this name" };
 	}
 
-	const account = await genAddress(sender.address, blockchain, password);
+	const account = await genAddress(sender.address, blockchain, password, accountId);
 	if (account.address === undefined || name === undefined) {
 		return { code: 500, message: "Account generation failed" };
 	}
@@ -73,6 +77,6 @@ async function listAccounts(context: HandlerContext): Promise<SkillResponse> {
 
 	return {
 		code: 200,
-		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${BLOCKSCOUT_URL_ETH_ADDRESS}${acc.address}`)}`,
+		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${BLOCKSCOUT_URL_ETH_ADDRESS}${acc.address}\n`)}`,
 	};
 }

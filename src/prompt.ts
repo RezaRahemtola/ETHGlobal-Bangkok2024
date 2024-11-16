@@ -56,6 +56,9 @@ export async function agent_prompt(senderAddress: string) {
 
 4. If the user wants to rename a blockchain account he has, use the command "/rename-account [oldName] [newName]"
 	Of course, renaming your account right now...
+
+5. If the user wants to delete a blockchain account he has, use the command "/delete-account [name]"
+	Looking for the account to delete...
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

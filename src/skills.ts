@@ -74,6 +74,17 @@ export const skills: SkillGroup[] = [
 					},
 				},
 			},
+			{
+				skill: "/delete-account [name]",
+				handler: handleAccounts,
+				description: "Delete an existing blockchain account",
+				examples: ["/delete-account bitconnect", "/delete-account my_noob_account"],
+				params: {
+					name: {
+						type: "string",
+					},
+				},
+			},
 		],
 	},
 ];

@@ -31,6 +31,8 @@ export async function handleAccounts(context: HandlerContext): Promise<SkillResp
 			return sendMainAsset(context, account);
 		case "rename-account":
 			return renameAccount(context);
+		case "delete-account":
+			return deleteAccount(context);
 		default:
 			return { code: 400, message: "Skill not found" };
 	}
@@ -90,7 +92,7 @@ async function listAccounts(context: HandlerContext): Promise<SkillResponse> {
 
 	return {
 		code: 200,
-		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${explorers["ethereum"]}/address/${acc.address}\n`)}`,
+		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${explorers[acc.chain]}/address/${acc.address}\n`).join("")}`,
 	};
 }
 
@@ -199,4 +201,41 @@ async function renameAccount(context: HandlerContext): Promise<SkillResponse> {
 	await updateUserAccounts(allUsersAccounts);
 
 	return { code: 200, message: `Account name successfully changed from '${oldName}' to '${newName}'` };
+}
+
+async function deleteAccount(context: HandlerContext): Promise<SkillResponse> {
+	const {
+		message: {
+			sender,
+			content: { params },
+		},
+	} = context;
+
+	const { name } = params;
+
+	const allUsersAccounts = await getUserAccounts();
+	if (allUsersAccounts[sender.address] === undefined) {
+		return { code: 400, message: "You don't have any accounts yet." };
+	}
+	const account = allUsersAccounts[sender.address].find(
+		(acc) => acc.name.toLowerCase() === (name as string).toLowerCase(),
+	);
+
+	if (account === undefined) {
+		return { code: 400, message: `Couldn't find account '${name}'` };
+	}
+
+	const answer = await context.awaitResponse(
+		"Are you sure you want to delete this account? You'll only be able to retrieve it by using the same password.\nPlease answer with yes or no",
+		["yes", "no"],
+	);
+
+	if (answer === "no") {
+		return { code: 200, message: "Alright, I'm still here if you need anything else!" };
+	}
+
+	allUsersAccounts[sender.address] = allUsersAccounts[sender.address].filter((acc) => acc.name !== name);
+	await updateUserAccounts(allUsersAccounts);
+
+	return { code: 200, message: `Account '${name}' removed` };
 }

@@ -61,6 +61,17 @@ export const skills: SkillGroup[] = [
 				},
 			},
 			{
+				skill: "/get-main-asset-balance [accountName]",
+				handler: handleAccounts,
+				description: "Get the balance of the main asset of a blockchain account",
+				examples: ["/get-main-asset-balance my_account", "/get-main-asset-balance somebody"],
+				params: {
+					accountName: {
+						type: "string",
+					},
+				},
+			},
+			{
 				skill: "/rename-account [oldName] [newName]",
 				handler: handleAccounts,
 				description: "Rename an existing blockchain account",

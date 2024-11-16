@@ -23,7 +23,13 @@ const ethereum = {
 		return Math.max(rapid, fast, standard);
 	},
 
-	getBalance: (address: string) => getSepoliaProvider().getBalance(address),
+	getBalance: async (address: string) => {
+		try {
+			return await getSepoliaProvider().getBalance(address);
+		} catch (_) {
+			return 0;
+		}
+	},
 
 	send: async ({
 		from: address,

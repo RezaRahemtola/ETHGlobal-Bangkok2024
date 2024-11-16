@@ -10,7 +10,7 @@ const bitcoin = {
 	explorer: "https://blockstream.info/testnet",
 	rpc: `https://blockstream.info/testnet/api`,
 
-	getBalance: async ({ address, getUtxos = false }: { address: string; getUtxos: boolean }) => {
+	getBalance: async ({ address, getUtxos = false }: { address: string; getUtxos?: boolean }) => {
 		const res = (await fetchJson(`https://blockstream.info/testnet/api/address/${address}/utxo`)) as unknown as any;
 
 		let utxos = res.map((utxo: any) => ({

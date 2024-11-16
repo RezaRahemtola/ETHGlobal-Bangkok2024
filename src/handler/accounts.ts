@@ -5,6 +5,7 @@ import ethereum from "../near/ethereum.js";
 import { Account } from "near-api-js";
 import { generatePath } from "../near/path.js";
 import bitcoin from "../near/bitcoin.js";
+import { ethers } from "ethers";
 
 const explorers: Record<"bitcoin" | "ethereum", string> = {
 	ethereum: "https://eth-sepolia.blockscout.com",
@@ -33,6 +34,8 @@ export async function handleAccounts(context: HandlerContext): Promise<SkillResp
 			return renameAccount(context);
 		case "delete-account":
 			return deleteAccount(context);
+		case "get-main-asset-balance":
+			return getMainAssetBalance(context);
 		default:
 			return { code: 400, message: "Skill not found" };
 	}
@@ -238,4 +241,43 @@ async function deleteAccount(context: HandlerContext): Promise<SkillResponse> {
 	await updateUserAccounts(allUsersAccounts);
 
 	return { code: 200, message: `Account '${name}' removed` };
+}
+
+async function getMainAssetBalance(context: HandlerContext): Promise<SkillResponse> {
+	const {
+		message: {
+			sender,
+			content: { params },
+		},
+	} = context;
+	const { accountName } = params;
+
+	const allUsersAccounts = await getUserAccounts();
+	if (allUsersAccounts[sender.address] === undefined) {
+		return { code: 400, message: "You don't have any accounts yet." };
+	}
+	const account = allUsersAccounts[sender.address].find(
+		(acc) => acc.name.toLowerCase() === (accountName as string).toLowerCase(),
+	);
+
+	if (account === undefined) {
+		return { code: 400, message: `Couldn't find account '${accountName}'` };
+	}
+
+	switch (account.chain) {
+		case "ethereum":
+			const ethBalance = await ethereum.getBalance(account.address);
+			return {
+				code: 200,
+				message: `Account ${account.name} has a balance of ${ethers.utils.formatUnits(ethBalance)} ${ethereum.currency}\n\nVerify it in the explorer: ${explorers["ethereum"]}/address/${account.address}`,
+			};
+		case "bitcoin":
+			const btcBalance = await bitcoin.getBalance({ address: account.address });
+			return {
+				code: 200,
+				message: `Account ${account.name} has a balance of ${btcBalance} ${bitcoin.currency}\n\nVerify it in the explorer: ${explorers["bitcoin"]}/address/${account.address}`,
+			};
+		default:
+			return { code: 400, message: "This blockchain doesn't support balance fetching" };
+	}
 }

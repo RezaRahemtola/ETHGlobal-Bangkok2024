@@ -59,6 +59,9 @@ export async function agent_prompt(senderAddress: string) {
 
 5. If the user wants to delete a blockchain account he has, use the command "/delete-account [name]"
 	Looking for the account to delete...
+
+6. If the user wants to know the balance of one of its blockchain account, use the command "/get-main-asset-balance [accountName]"
+	Retrieving the balance of your account...
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

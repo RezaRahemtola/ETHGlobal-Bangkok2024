@@ -96,7 +96,7 @@ const ethereum = {
 		path: string;
 		nearAccount: Account;
 	}): Promise<{ error?: string; result?: string }> => {
-		const { chainId, getBalance, explorer, currency } = ethereum;
+		const { chainId, explorer } = ethereum;
 
 		// create hash of unsigned TX to sign -> payload
 		const unsignedTx = ethers.utils.serializeTransaction(baseTx);
@@ -147,7 +147,7 @@ const ethereum = {
 };
 
 const getSepoliaProvider = () => {
-	return new ethers.providers.JsonRpcProvider("https://ethereum-sepolia.publicnode.com");
+	return new ethers.providers.JsonRpcProvider("https://eth-sepolia.blockscout.com/api/eth-rpc");
 };
 
 export default ethereum;

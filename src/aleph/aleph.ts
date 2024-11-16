@@ -8,7 +8,6 @@ const userAccountSchema = z.object({
 	chain: z.union([z.literal("ethereum"), z.literal("near")]),
 	address: z.string(),
 });
-export type UserAccount = z.infer<typeof userAccountSchema>;
 const userAccountsSchema = z.array(userAccountSchema);
 
 const storageSchema = z.record(z.string(), userAccountsSchema);

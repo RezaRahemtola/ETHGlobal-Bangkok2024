@@ -50,6 +50,9 @@ export async function agent_prompt(senderAddress: string) {
   
 2. If the user wants to list the blockchain accounts he has, use the command "/list-accounts"
 	Fetching your accounts...
+
+3. If the user wants to send some amount of crypto-currency to an account, use the command "/send-main-asset [amount] [destination] [account] [password]"
+	Preparing the transaction...
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

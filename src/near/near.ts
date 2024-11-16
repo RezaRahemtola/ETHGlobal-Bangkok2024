@@ -3,6 +3,7 @@ import env from "../config/env.js";
 import { generateAddress } from "./kdf.js";
 import { generatePath } from "./path.js";
 import * as nearAPI from "near-api-js";
+import BN from "bn.js";
 
 const { Near, Account, keyStores, KeyPair } = nearAPI;
 
@@ -31,7 +32,7 @@ export const genAddress = async (userAddress: string, chain: string, password: s
 	});
 };
 
-export const genNearAccount = async (path: string): Promise<string> => {
+export const genNearAccount = async (path: string): Promise<nearAPI.Account> => {
 	const {
 		address: accountId,
 		nearSecpPublicKey,
@@ -50,14 +51,20 @@ export const genNearAccount = async (path: string): Promise<string> => {
 	let accessKeys = await getKeys(accountId!);
 	if (accessKeys.length === 0) {
 		console.log("Creating NEAR Account");
-		await createAccountWithSecpKey({
+		return await createAccountWithSecpKey({
 			accountId: accountId!,
 			secretKey: nearImplicitSecretKey as KeyPairString,
 			keyToAdd: nearSecpPublicKey!,
+			fund: true,
 		});
 	}
 
-	return accountId!;
+	return await createAccountWithSecpKey({
+		accountId: accountId!,
+		secretKey: nearImplicitSecretKey as KeyPairString,
+		keyToAdd: nearSecpPublicKey!,
+		fund: false,
+	});
 };
 
 const getKeys = async (accountId: string) => {
@@ -69,15 +76,73 @@ export const createAccountWithSecpKey = async ({
 	accountId: newAccountId,
 	secretKey,
 	keyToAdd,
+	fund,
 }: {
 	accountId: string;
 	secretKey: KeyPairString;
 	keyToAdd: string;
-}) => {
-	const account = new Account(near.connection, env.NEAR_ACCOUNT_ID);
-	await account.sendMoney(newAccountId, BigInt("5000000000000000000000000"));
+	fund: boolean;
+}): Promise<nearAPI.Account> => {
 	const keyPair = KeyPair.fromString(secretKey);
 	keyStore.setKey(networkId, newAccountId, keyPair);
 	const newAccount = new Account(near.connection, newAccountId);
-	await newAccount.addKey(keyToAdd);
+
+	if (fund) {
+		// Dev account
+		const account = new Account(near.connection, env.NEAR_ACCOUNT_ID);
+		// Funding the user wallet with some money
+		await account.sendMoney(newAccountId, BigInt("5000000000000000000000000"));
+		await newAccount.addKey(keyToAdd);
+	}
+
+	return newAccount;
 };
+
+export async function sign(payload: any, path: string, account: nearAPI.Account) {
+	const args = {
+		request: {
+			payload,
+			path,
+			key_version: 0,
+		},
+	};
+	let attachedDeposit = nearAPI.utils.format.parseNearAmount("0.2");
+
+	console.log("sign payload", payload.length > 200 ? payload.length : payload.toString());
+	console.log("with path", path);
+	console.log("this may take approx. 30 seconds to complete");
+	console.log("argument to sign: ", args);
+
+	let res: nearAPI.providers.FinalExecutionOutcome;
+	try {
+		res = await account.functionCall({
+			contractId: env.MPC_CONTRACT_ID,
+			methodName: "sign",
+			args,
+			gas: new BN("290000000000000") as unknown as never,
+			attachedDeposit: new BN(attachedDeposit as unknown as never) as unknown as never,
+		});
+		console.log(res);
+	} catch (e) {
+		console.log(e);
+		throw new Error(`error signing ${JSON.stringify(e)}`);
+	}
+
+	// parse result into signature values we need r, s but we don't need first 2 bytes of r (y-parity)
+	if ("SuccessValue" in (res.status as any)) {
+		const successValue = (res.status as any).SuccessValue;
+		const decodedValue = Buffer.from(successValue, "base64").toString();
+		console.log("decoded value: ", decodedValue);
+		const { big_r, s: S, recovery_id } = JSON.parse(decodedValue);
+		const r = Buffer.from(big_r.affine_point.substring(2), "hex");
+		const s = Buffer.from(S.scalar, "hex");
+
+		return {
+			r,
+			s,
+			v: recovery_id,
+		};
+	} else {
+		throw new Error(`error signing ${JSON.stringify(res)}`);
+	}
+}

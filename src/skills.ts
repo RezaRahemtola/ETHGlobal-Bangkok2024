@@ -11,11 +11,14 @@ export const skills: SkillGroup[] = [
 				skill: "/create-account [blockchain] [name] [password]",
 				handler: handleAccounts,
 				description: "Create a new account/wallet on the specified blockchain using a given password.",
-				examples: ["/create-account ethereum cold_wallet supersecretpassword"],
+				examples: [
+					"/create-account ethereum cold_wallet supersecretpassword",
+					"/create-account bitcoin hot_wallet othermasterkey",
+				],
 				params: {
 					blockchain: {
 						type: "string",
-						values: ["ethereum"],
+						values: ["ethereum", "bitcoin"],
 					},
 					name: {
 						type: "string",

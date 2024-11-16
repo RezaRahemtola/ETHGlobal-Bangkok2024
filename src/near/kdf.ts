@@ -2,6 +2,8 @@ import js_sha3 from "js-sha3";
 import { base_decode, base_encode } from "near-api-js/lib/utils/serialize.js";
 import keccak from "keccak";
 import elliptic from "elliptic";
+import hash from "hash.js";
+import bs58check from "bs58check";
 import { generateSeedPhrase } from "near-seed-phrase";
 
 const { ec: EC } = elliptic;
@@ -59,6 +61,9 @@ export async function generateAddress({
 			nearSecpPublicKey = implicitSecpPublicKey;
 			nearImplicitSecretKey = implicitAccountSecretKey;
 			break;
+		case "bitcoin":
+			address = await uncompressedHexPointToBtcAddress(childPublicKey, Buffer.from([0x6f]));
+			break;
 	}
 	return {
 		// @ts-ignore
@@ -103,4 +108,22 @@ async function uncompressedHexPointToNearImplicit(uncompressedHexPoint: string) 
 		implicitSecpPublicKey,
 		implicitAccountSecretKey,
 	};
+}
+
+async function uncompressedHexPointToBtcAddress(publicKeyHex: string, networkByte: Uint8Array): Promise<string> {
+	// Step 1: SHA-256 hashing of the public key
+	const publicKeyBytes = Uint8Array.from(Buffer.from(publicKeyHex, "hex"));
+
+	const sha256HashOutput = await crypto.subtle.digest("SHA-256", publicKeyBytes);
+
+	// Step 2: RIPEMD-160 hashing on the result of SHA-256
+	const ripemd160 = hash.ripemd160().update(Buffer.from(sha256HashOutput)).digest();
+
+	// Step 3: Adding network byte (0x00 for Bitcoin Mainnet)
+	const networkByteAndRipemd160 = Buffer.concat([networkByte, Buffer.from(ripemd160)]);
+
+	// Step 4: Base58Check encoding
+	const address = bs58check.encode(networkByteAndRipemd160);
+
+	return address;
 }

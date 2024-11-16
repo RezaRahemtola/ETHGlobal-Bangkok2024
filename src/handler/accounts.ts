@@ -4,8 +4,12 @@ import { getUserAccounts, updateUserAccounts } from "../aleph/aleph.js";
 import ethereum from "../near/ethereum.js";
 import { Account } from "near-api-js";
 import { generatePath } from "../near/path.js";
+import bitcoin from "../near/bitcoin.js";
 
-const BLOCKSCOUT_URL_ETH = "https://eth-sepolia.blockscout.com";
+const explorers: Record<"bitcoin" | "ethereum", string> = {
+	ethereum: "https://eth-sepolia.blockscout.com",
+	bitcoin: "https://blockstream.info/testnet",
+};
 
 export async function handleAccounts(context: HandlerContext): Promise<SkillResponse> {
 	const {
@@ -42,13 +46,14 @@ async function createAccount(context: HandlerContext, accountId: string): Promis
 
 	const { blockchain, password, name } = params;
 
+	const formattedChain = blockchain.toLowerCase();
 	const allUsersAccounts = await getUserAccounts();
 
 	if (allUsersAccounts[sender.address]?.find((acc) => acc.name === name)) {
 		return { code: 400, message: "You already have an account with this name" };
 	}
 
-	const account = await genAddress(sender.address, blockchain, password, accountId);
+	const account = await genAddress(sender.address, formattedChain, password, accountId);
 	if (account.address === undefined || name === undefined) {
 		return { code: 500, message: "Account generation failed" };
 	}
@@ -56,16 +61,17 @@ async function createAccount(context: HandlerContext, accountId: string): Promis
 	allUsersAccounts[sender.address] = [
 		...(allUsersAccounts[sender.address] ?? []),
 		{
-			chain: blockchain,
+			chain: formattedChain,
 			address: account.address,
 			name,
+			publicKey: account.publicKey,
 		},
 	];
 	await updateUserAccounts(allUsersAccounts);
 
 	return {
 		code: 200,
-		message: `Account "${name}" created with address ${account.address}.\n\nView it on the explorer: ${BLOCKSCOUT_URL_ETH}/address/${account.address}`,
+		message: `Account "${name}" created with address ${account.address}.\n\nView it on the explorer: ${explorers[formattedChain as unknown as never]}/address/${account.address}`,
 	};
 }
 
@@ -84,7 +90,7 @@ async function listAccounts(context: HandlerContext): Promise<SkillResponse> {
 
 	return {
 		code: 200,
-		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${BLOCKSCOUT_URL_ETH}/address/${acc.address}\n`)}`,
+		message: `You have ${accounts.length} account${accounts.length > 1 ? "s" : ""}:\n\n${accounts.map((acc) => `- ${acc.name} on ${acc.chain}: ${explorers["ethereum"]}/address/${acc.address}\n`)}`,
 	};
 }
 
@@ -115,23 +121,43 @@ async function sendMainAsset(context: HandlerContext, nearAccount: Account): Pro
 	}
 	const path = await generatePath(sender.address, password);
 
-	const { error, result } = await ethereum.send({
-		from: account.address,
-		to: destination,
-		amount: (amount as number).toString(),
-		path,
-		nearAccount,
-	});
+	switch (account.chain) {
+		case "ethereum":
+			const { error: ethError, result: ethResult } = await ethereum.send({
+				from: account.address,
+				to: destination,
+				amount: (amount as number).toString(),
+				path,
+				nearAccount,
+			});
+			if (ethError === undefined) {
+				return {
+					code: 200,
+					message: `Transaction successfully sent.
+${explorers["ethereum"]}/tx/${ethResult}`,
+				};
+			}
 
-	if (error === undefined) {
-		return {
-			code: 200,
-			message: `Transaction successfully sent.
-${BLOCKSCOUT_URL_ETH}/tx/${result}`,
-		};
+			return { code: 400, message: ethError };
+		case "bitcoin":
+			const { error: btcError, result: btcResult } = await bitcoin.send({
+				from: account.address,
+				to: destination,
+				amount: (amount as number).toString(),
+				path,
+				nearAccount,
+				publicKey: account.publicKey!,
+			});
+
+			if (btcError === undefined) {
+				return {
+					code: 200,
+					message: `Transaction successfully sent.
+${explorers["bitcoin"]}/tx/${btcResult}`,
+				};
+			}
+			return { code: 400, message: btcError };
 	}
-
-	return { code: 400, message: error };
 }
 
 async function renameAccount(context: HandlerContext): Promise<SkillResponse> {

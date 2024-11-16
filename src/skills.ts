@@ -3,8 +3,8 @@ import { handleAccounts } from "./handler/accounts.js";
 
 export const skills: SkillGroup[] = [
 	{
-		name: "Blockchain accounts management bot",
-		tag: "@accounts",
+		name: "AIlice - Blockchain accounts management agent",
+		tag: "@ailice",
 		description: "Create accounts on different blockchains and interact with them.",
 		skills: [
 			{

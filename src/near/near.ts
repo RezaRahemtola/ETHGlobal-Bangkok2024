@@ -124,7 +124,7 @@ export async function sign(payload: any, path: string, account: nearAPI.Account)
 		});
 		console.log(res);
 	} catch (e) {
-		console.log(e);
+		console.error(e);
 		throw new Error(`error signing ${JSON.stringify(e)}`);
 	}
 

@@ -53,6 +53,9 @@ export async function agent_prompt(senderAddress: string) {
 
 3. If the user wants to send some amount of crypto-currency to an account, use the command "/send-main-asset [amount] [destination] [account] [password]"
 	Preparing the transaction...
+
+4. If the user wants to rename a blockchain account he has, use the command "/rename-account [oldName] [newName]"
+	Of course, renaming your account right now...
 `;
 
 	return defaultPromptTemplate(fineTuning, senderAddress, skills, "@ens");

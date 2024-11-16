@@ -8,7 +8,7 @@ const ethereum = {
 	name: "Sepolia",
 	chainId: 11155111,
 	currency: "ETH",
-	explorer: "https://sepolia.etherscan.io",
+	explorer: "https://eth-sepolia.blockscout.com",
 	gasLimit: 21000,
 
 	getGasPrice: async () => {
@@ -37,7 +37,7 @@ const ethereum = {
 		amount?: string;
 		path: string;
 		nearAccount: Account;
-	}): Promise<string | undefined> => {
+	}): Promise<{ error?: string; result?: string }> => {
 		const { getGasPrice, gasLimit, chainId, getBalance, completeEthereumTx, currency } = ethereum;
 
 		const balance = await getBalance(address);
@@ -52,7 +52,7 @@ const ethereum = {
 		const value = ethers.utils.hexlify(ethers.utils.parseUnits(amount));
 		if (value === "0x00") {
 			console.log("Amount is zero. Please try a non-zero amount.");
-			return "Amount is zero. Please try a non-zero amount.";
+			return { error: "Amount is zero. Please try a non-zero amount." };
 		}
 
 		// check account has enough balance to cover value + gas spend
@@ -64,8 +64,7 @@ const ethereum = {
 					new BN(ethers.utils.parseUnits(amount).toString()).add(new BN(gasPrice).mul(new BN(gasLimit.toString()))),
 				))
 		) {
-			console.log("insufficient funds");
-			return "insufficient funds";
+			return { error: "insufficient funds" };
 		}
 
 		console.log("sending", amount, currency, "from", address, "to", to);
@@ -82,7 +81,8 @@ const ethereum = {
 
 		console.log(`baseTx: `, baseTx);
 
-		await completeEthereumTx({ address, baseTx, path, nearAccount });
+		const { error, result } = await completeEthereumTx({ address, baseTx, path, nearAccount });
+		return { error, result };
 	},
 
 	completeEthereumTx: async ({
@@ -95,7 +95,7 @@ const ethereum = {
 		baseTx: any;
 		path: string;
 		nearAccount: Account;
-	}) => {
+	}): Promise<{ error?: string; result?: string }> => {
 		const { chainId, getBalance, explorer, currency } = ethereum;
 
 		// create hash of unsigned TX to sign -> payload
@@ -106,7 +106,7 @@ const ethereum = {
 		// get signature from MPC contract
 		let sig = (await sign(payload, path, nearAccount)) as unknown as any;
 
-		if (!sig) return;
+		if (!sig) return { error: "Signature failed" };
 
 		sig.r = "0x" + sig.r.toString("hex");
 		sig.s = "0x" + sig.s.toString("hex");
@@ -123,7 +123,7 @@ const ethereum = {
 			}
 		}
 		if (!addressRecovered) {
-			return console.log("signature failed to recover correct sending address");
+			return { error: "signature failed to recover correct sending address" };
 		}
 
 		// broadcast TX - signature now has correct { r, s, v }
@@ -133,19 +133,15 @@ const ethereum = {
 			]);
 			console.log("tx hash", hash);
 			console.log("explorer link", `${explorer}/tx/${hash}`);
-			console.log("fetching updated balance in 60s...");
-			setTimeout(async () => {
-				const balance = await getBalance(address);
-				console.log("balance", ethers.utils.formatUnits(balance), currency);
-			}, 60000);
+			return { result: hash };
 		} catch (e) {
 			if (/nonce too low/gi.test(JSON.stringify(e))) {
-				return console.log("tx has been tried");
+				return { error: "tx has been tried" };
 			}
 			if (/gas too low|underpriced/gi.test(JSON.stringify(e))) {
-				return console.log(e);
+				return { error: e as unknown as any };
 			}
-			console.log(e);
+			return { error: e as unknown as any };
 		}
 	},
 };

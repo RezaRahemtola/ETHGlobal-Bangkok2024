@@ -1,6 +1,6 @@
 import { HandlerContext, SkillResponse } from "@xmtp/message-kit";
 import { genAddress, genNearAccount } from "../near/near.js";
-import { getUserAccounts, updateUserAccounts } from "../aleph/aleph.js";
+import { getUserAccounts, updateUserAccounts, UserAccount } from "../aleph/aleph.js";
 import ethereum from "../near/ethereum.js";
 import { Account } from "near-api-js";
 import { generatePath } from "../near/path.js";
@@ -36,6 +36,8 @@ export async function handleAccounts(context: HandlerContext): Promise<SkillResp
 			return deleteAccount(context);
 		case "get-main-asset-balance":
 			return getMainAssetBalance(context);
+		case "get-main-asset-total-balances":
+			return getMainAssetTotalBalances(context);
 		default:
 			return { code: 400, message: "Skill not found" };
 	}
@@ -264,20 +266,67 @@ async function getMainAssetBalance(context: HandlerContext): Promise<SkillRespon
 		return { code: 400, message: `Couldn't find account '${accountName}'` };
 	}
 
+	const balance = await getAccountBalance(account);
+	if (balance.currency === "UNKNOWN") {
+		return { code: 400, message: "This blockchain doesn't support balance fetching" };
+	}
+
+	return {
+		code: 200,
+		message: `Account ${account.name} has a balance of ${balance.amount} ${balance.currency}\n\nVerify it in the explorer: ${explorers[account.chain]}/address/${account.address}`,
+	};
+}
+
+async function getAccountBalance(account: UserAccount): Promise<{ amount: number; currency: string }> {
 	switch (account.chain) {
 		case "ethereum":
 			const ethBalance = await ethereum.getBalance(account.address);
 			return {
-				code: 200,
-				message: `Account ${account.name} has a balance of ${ethers.utils.formatUnits(ethBalance)} ${ethereum.currency}\n\nVerify it in the explorer: ${explorers["ethereum"]}/address/${account.address}`,
+				amount: Number(ethers.utils.formatUnits(ethBalance)),
+				currency: ethereum.currency,
 			};
 		case "bitcoin":
 			const btcBalance = await bitcoin.getBalance({ address: account.address });
 			return {
-				code: 200,
-				message: `Account ${account.name} has a balance of ${btcBalance} ${bitcoin.currency}\n\nVerify it in the explorer: ${explorers["bitcoin"]}/address/${account.address}`,
+				amount: btcBalance,
+				currency: bitcoin.currency,
 			};
 		default:
-			return { code: 400, message: "This blockchain doesn't support balance fetching" };
+			return { amount: -42, currency: "UNKNOWN" };
 	}
+}
+
+async function getMainAssetTotalBalances(context: HandlerContext): Promise<SkillResponse> {
+	const {
+		message: { sender },
+	} = context;
+
+	const allUsersAccounts = await getUserAccounts();
+	if (allUsersAccounts[sender.address] === undefined) {
+		return { code: 400, message: "You don't have any accounts yet." };
+	}
+
+	const accountsPerChain = Object.groupBy(allUsersAccounts[sender.address], ({ chain }) => chain);
+	const totalBalances: string[] = [];
+
+	for (const chain in accountsPerChain) {
+		const chainAccounts = accountsPerChain[chain as unknown as never] as UserAccount[];
+		let totalChainAmount = 0;
+		let currency = "";
+		await Promise.all(
+			chainAccounts.map(async (acc) => {
+				const balance = await getAccountBalance(acc);
+				totalChainAmount += balance.amount;
+				currency = balance.currency;
+			}),
+		);
+		totalBalances.push(`${totalChainAmount} ${currency}`);
+	}
+
+	return {
+		code: 200,
+		message: `Here's a summary of your total balance across your wallets:
+
+${totalBalances.map((balance) => `- ${balance}`).join("")}`,
+	};
 }
